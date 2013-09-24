@@ -448,7 +448,8 @@ onStanza = (stanza) ->
     jid = new xmpp.JID stanza.attrs.from
     room = jid.bare().toString()
     return if not room
-    # name = stanza.attrs.from.split("/")[1]
+    name = stanza.attrs.from.split("/")[1]
+    name ?= ""
     # return if not name
     type = stanza.attrs.type or "available"
     x = stanza.getChild "x", "http://jabber.org/protocol/muc#user"
@@ -458,10 +459,10 @@ onStanza = (stanza) ->
     from = entity.attrs?.jid
     return if not from
     if type is "unavailable"
-      @emit "leave", from, room
+      @emit "leave", from, room, name
       # @emit "leave", from, name, room
     else if type is "available" and entity.attrs.role is "participant"
-      @emit "enter", from, room
+      @emit "enter", from, room, name
       # @emit "enter", from, name, room
 
 # DOM helpers
