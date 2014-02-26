@@ -133,7 +133,9 @@ class HipChat extends Adapter
           if user
             user.room = room_jid
             user.name = current_name if current_name.length
-            user.mention_name = connector.mention_name
+            user_id = @userIdFromJid(user_jid)
+            user_obj = get("/v1/users/show?user_id=#{user_id}")
+            user.mention_name = user_obj["user"]["mention_name"]
             @receive new PresenceMessage(user)
 
       connector.onEnter (user_jid, room_jid, current_name) =>
