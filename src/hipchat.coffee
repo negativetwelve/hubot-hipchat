@@ -88,7 +88,7 @@ class HipChat extends Adapter
 
       saveUsers = (users) =>
         # Save users to brain
-        console.log(users)
+        @logger.info users
         for user in users
           user.id = @userIdFromJid user.jid
           # userForId will not overwrite an existing user
