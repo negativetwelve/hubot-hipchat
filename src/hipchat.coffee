@@ -134,7 +134,9 @@ class HipChat extends Adapter
             user.room = room_jid
             user.name = current_name if current_name.length
             user_id = @userIdFromJid(user_jid)
+            console.log(user_id)
             user_obj = get("/v1/users/show?user_id=#{user_id}")
+            console.log(user_obj)
             user.mention_name = user_obj["user"]["mention_name"]
             @receive new PresenceMessage(user)
 
