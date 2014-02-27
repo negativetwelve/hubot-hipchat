@@ -1,4 +1,4 @@
-{Adapter, TextMessage, EnterMessage, LeaveMessage} = require "../../hubot"
+{Adapter, TextMessage, EnterMessage, LeaveMessage, User} = require "../../hubot"
 HTTPS = require "https"
 {inspect} = require "util"
 Connector = require "./connector"
@@ -9,6 +9,9 @@ class HipChat extends Adapter
   constructor: (robot) ->
     super robot
     @logger = robot.logger
+
+  emote: (envelope, strings...) ->
+    @send envelope, strings.map((str) -> "/me #{str}")...
 
   send: (envelope, strings...) ->
     {user, room} = envelope
@@ -29,6 +32,25 @@ class HipChat extends Adapter
 
     for str in strings
       @connector.message target_jid, str
+
+  topic: (envelope, message) ->
+    {user, room} = envelope
+    user = envelope if not user # pre-2.4.2 style
+
+    target_jid =
+      # most common case - we're replying to a user in a room or 1-1
+      user?.reply_to or
+      # allows user objects to be passed in
+      user?.jid or
+      if user?.search?(/@/) >= 0
+        user # allows user to be a jid string
+      else
+        room # this will happen if someone uses robot.messageRoom(jid, ...)
+
+    if not target_jid
+      return @logger.error "ERROR: Not sure who to send to: envelope=#{inspect envelope}"
+
+    @connector.topic target_jid, message
 
   reply: (envelope, strings...) ->
     user = if envelope.user then envelope.user else envelope
@@ -64,6 +86,15 @@ class HipChat extends Adapter
       # Tell Hubot we're connected so it can load scripts
       @emit "connected"
 
+      saveUsers = (users) =>
+        # Save users to brain
+        for user in users
+          user.id = @userIdFromJid user.jid
+          # userForId will not overwrite an existing user
+          if user.id of @robot.brain.data.users
+            delete @robot.brain.data.users[user.id]
+          @robot.brain.userForId user.id, user
+
       # Fetch user info
       connector.getRoster (err, users, stanza) =>
         return init.reject err if err
@@ -71,10 +102,7 @@ class HipChat extends Adapter
 
       init
         .done (users) =>
-          # Save users to brain
-          for user in users
-            user.id = @userIdFromJid user.jid
-            @robot.brain.userForId user.id, user
+          saveUsers(users)
           # Join requested rooms
           if @options.rooms is "All" or @options.rooms is "@All"
             connector.getRooms (err, rooms, stanza) =>
@@ -92,12 +120,15 @@ class HipChat extends Adapter
         .fail (err) =>
           @logger.error "Can't list users: #{errmsg err}" if err
 
+      connector.onRosterChange (users) =>
+        saveUsers(users)
+
       handleMessage = (opts) =>
         # buffer message events until the roster fetch completes
         # to ensure user data is properly loaded
         init.done =>
           {getAuthor, message, reply_to, room} = opts
-          author = getAuthor()
+          author = getAuthor() or {}
           author.reply_to = reply_to
           author.room = room
           @receive new TextMessage(author, message)
@@ -109,7 +140,7 @@ class HipChat extends Adapter
         regex = new RegExp "^@#{mention_name}\\b", "i"
         message = message.replace regex, "#{mention_name}: "
         handleMessage
-          getAuthor: => @robot.brain.userForName(from)
+          getAuthor: => @robot.brain.userForName(from) or new User(from)
           message: message
           reply_to: channel
           room: @roomNameFromJid(channel)
@@ -118,7 +149,7 @@ class HipChat extends Adapter
         # remove leading @mention name if present and format the message like
         # "name: message" which is what hubot expects
         mention_name = connector.mention_name
-        regex = new RegExp "^@#{mention_name}\\b", "i"
+        regex = new RegExp "^@?#{mention_name}\\b", "i"
         message = "#{mention_name}: #{message.replace regex, ""}"
         handleMessage
           getAuthor: => @robot.brain.userForId(@userIdFromJid from)
@@ -133,11 +164,6 @@ class HipChat extends Adapter
           if user
             user.room = room_jid
             user.name = current_name if current_name.length
-            user_id = @userIdFromJid(user_jid)
-            console.log(user_id)
-            user_obj = get("/v1/users/show?user_id=#{user_id}")
-            console.log(user_obj)
-            user.mention_name = user_obj["user"]["mention_name"]
             @receive new PresenceMessage(user)
 
       connector.onEnter (user_jid, room_jid, current_name) =>
