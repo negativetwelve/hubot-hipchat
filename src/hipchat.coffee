@@ -88,13 +88,15 @@ class HipChat extends Adapter
 
       saveUsers = (users) =>
         # Save users to brain
+        console.log("save users")
         @logger.info users
         for user in users
           user.id = @userIdFromJid user.jid
           # userForId will not overwrite an existing user
-          if user.id in @robot.brain.data.users
-            delete @robot.brain.data.users[user.id]
-          @robot.brain.userForId user.id, user
+          @robot.brain.data.users[user.id] = user
+          # if user.id in @robot.brain.data.users
+          #   delete @robot.brain.data.users[user.id]
+          # @robot.brain.userForId user.id, user
 
       # Fetch user info
       connector.getRoster (err, users, stanza) =>
@@ -122,6 +124,7 @@ class HipChat extends Adapter
           @logger.error "Can't list users: #{errmsg err}" if err
 
       connector.onRosterChange (users) =>
+        console.log("Roster has changed")
         saveUsers(users)
 
       handleMessage = (opts) =>
