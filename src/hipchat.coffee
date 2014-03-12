@@ -92,7 +92,8 @@ class HipChat extends Adapter
         @logger.info users
         for user in users
           user.id = @userIdFromJid user.jid
-          @robot.brain.data.users[user.id] = user
+          @robot.brain.data.users[user.id].mention_name = user.mention_name
+          @robot.brain.data.users[user.id].name = user.name
         @logger.info "After setting the users..."
         @logger.info users
         # for user in users
