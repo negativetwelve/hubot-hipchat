@@ -96,9 +96,10 @@ class HipChat extends Adapter
           if user.id in @robot.brain.data.users
             delete @robot.brain.data.users[user.id]
           @robot.brain.userForId user.id, user
+          @robot.brain.data.users[user.id].mention_name = user.mention_name
         @robot.brain.emit('save', @robot.brain.data)
         @logger.info "After setting the users..."
-        @logger.info users
+        @logger.info @robot.brain.data.users
 
 
       # Fetch user info
