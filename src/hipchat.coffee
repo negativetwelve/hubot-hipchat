@@ -92,19 +92,14 @@ class HipChat extends Adapter
         @logger.info users
         for user in users
           user.id = @userIdFromJid user.jid
-          @robot.brain.data.users[user.id].mention_name = user.mention_name
-          @robot.brain.data.users[user.id].name = user.name
+          # userForId will not overwrite an existing user
+          if user.id in @robot.brain.data.users
+            delete @robot.brain.data.users[user.id]
+          @robot.brain.userForId user.id, user
         @robot.brain.emit('save', @robot.brain.data)
         @logger.info "After setting the users..."
         @logger.info users
-        # for user in users
-          # user_id = @userIdFromJid user.jid
-          # user.id = user_id
-          # userForId will not overwrite an existing user
-          # @robot.brain.data.users[user_id] = user
-          # if user.id in @robot.brain.data.users
-          #   delete @robot.brain.data.users[user.id]
-          # @robot.brain.userForId user.id, user
+
 
       # Fetch user info
       connector.getRoster (err, users, stanza) =>
