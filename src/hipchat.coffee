@@ -91,6 +91,8 @@ class HipChat extends Adapter
         console.log("save users")
         @logger.info users
         @robot.brain.data.users = users
+        @logger.info "After setting the users..."
+        @logger.info users
         # for user in users
           # user_id = @userIdFromJid user.jid
           # user.id = user_id
