@@ -88,8 +88,6 @@ class HipChat extends Adapter
 
       saveUsers = (users) =>
         # Save users to brain
-        console.log("save users")
-        @logger.info users
         for user in users
           user.id = @userIdFromJid user.jid
           # userForId will not overwrite an existing user
@@ -98,8 +96,6 @@ class HipChat extends Adapter
           @robot.brain.userForId user.id, user
           @robot.brain.data.users[user.id]['mention_name'] = user.mention_name
         @robot.brain.emit('save', @robot.brain.data)
-        @logger.info "After setting the users..."
-        @logger.info @robot.brain.data.users
 
 
       # Fetch user info
@@ -128,7 +124,6 @@ class HipChat extends Adapter
           @logger.error "Can't list users: #{errmsg err}" if err
 
       connector.onRosterChange (users) =>
-        console.log("Roster has changed")
         saveUsers(users)
 
       handleMessage = (opts) =>
